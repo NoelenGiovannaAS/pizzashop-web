@@ -21,12 +21,12 @@ export function Header() {
             <UtensilsCrossed className="2-4 h-4" />
             Pedidos
           </NavLink>
-
-          <div className="al-auto flex items-center gap-2">
-            <ThemeToggle />
-            <AccountMenu />
-          </div>
         </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+          <AccountMenu />
+        </div>
       </div>
     </div>
   )
