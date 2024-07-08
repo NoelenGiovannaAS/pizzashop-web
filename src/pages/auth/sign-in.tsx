@@ -1,12 +1,17 @@
+import { signIn } from '@/api/sign-in'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useMutation } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet-async'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
+
 export function SignIn() {
+  const [searchParams] = useSearchParams()
+
   const signInForm = z.object({
     email: z.string().email(),
   })
@@ -17,11 +22,18 @@ export function SignIn() {
     register,
     handleSubmit,
     formState: { isSubmitting },
-  } = useForm()
+  } = useForm<SignInForm>({
+    defaultValues: { email: searchParams.get('email') ?? '' },
+  })
+
+  const { mutateAsync: authenticate } = useMutation({
+    // mutação é qualquer ação que não tem retorno, oposto de query
+    mutationFn: signIn, // qual função vai ser disparada
+  })
 
   async function handleSignIn(data: SignInForm) {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await authenticate({ email: data.email })
       toast.success('Enviamos um link de autenticação para seu e-mail!', {
         action: {
           label: 'Reenviar',
