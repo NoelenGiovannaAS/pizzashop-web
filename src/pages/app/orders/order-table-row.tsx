@@ -4,8 +4,12 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { ArrowRight, Search, X } from 'lucide-react'
 import { OrderDetails } from './order-details'
 import { OrderStatus } from '@/components/order-status'
-import { formatDistanceToNow} from 'date-fns'
-import {ptBR} from 'date-fns/locale'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { useState } from 'react'
+import { useMutation, useQueryClient } from 'react-query'
+import { cancelOrder } from '@/api/orders/cancel-order'
+import { GetOrdersResponse } from '@/api/orders/get-orders'
 export interface OrderTableRowProps {
   order: {
     orderId: string
@@ -16,12 +20,43 @@ export interface OrderTableRowProps {
   }
 }
 
-
 export function OrderTableRow({ order }: OrderTableRowProps) {
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  function updateOrderStatusOnCache(orderId: string, status: OrderStatus) {
+    const ordersListCache = queryClient.getQueriesData<GetOrdersResponse>({
+      queryKey: ['orders'],
+    })
+
+    ordersListCache.forEach(([cacheKey, cacheData]) => {
+      if (!cacheData) {
+        return
+      }
+
+      queryClient.setQueryData<GetOrdersResponse>(cacheKey, {
+        ...cacheData,
+        orders: cacheData.orders.map((order) => {
+          if (order.orderId === orderId) {
+            return { ...order, status }
+          }
+
+          return order
+        }),
+      })
+    })
+  }
+  const { mutateAsync: cancelOrderFn } = useMutation({
+    mutationFn: cancelOrder,
+    onSuccess: (_, { orderId }) => {
+      updateOrderStatusOnCache(orderId, 'canceled')
+    },
+  })
+
   return (
     <TableRow>
       <TableCell>
-        <Dialog>
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="xs">
               <Search className="h-3 w-3" />
@@ -30,20 +65,27 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
           </DialogTrigger>
 
           <DialogContent>
-            <OrderDetails />
+            <OrderDetails orderId={order.orderId} open={isDetailsOpen} />
           </DialogContent>
         </Dialog>
       </TableCell>
-      <TableCell className="font-mono text-xs font-medium">{order.orderId}</TableCell>
-      <TableCell className="text-muted-foreground">{formatDistanceToNow(order.createdAt, {locale: ptBR, addSuffix: true})}</TableCell>
+      <TableCell className="font-mono text-xs font-medium">
+        {order.orderId}
+      </TableCell>
+      <TableCell className="text-muted-foreground">
+        {formatDistanceToNow(order.createdAt, {
+          locale: ptBR,
+          addSuffix: true,
+        })}
+      </TableCell>
       <TableCell>
-        <OrderStatus status={order.status}/>
+        <OrderStatus status={order.status} />
       </TableCell>
       <TableCell className="font-medium">{order.customerName}</TableCell>
       <TableCell className="font-medium">
-        {order.total.toLocaleString('pt-BR', {
+        {(order.total / 100).toLocaleString('pt-BR', {
           style: 'currency',
-          currency: 'BRL'
+          currency: 'BRL',
         })}
       </TableCell>
       <TableCell>
@@ -52,7 +94,12 @@ export function OrderTableRow({ order }: OrderTableRowProps) {
         </Button>
       </TableCell>
       <TableCell>
-        <Button className="" variant="ghost" size="xs">
+        <Button
+          disabled={!['pending', 'processing'].includes(order.status)}
+          onClick={() => cancelOrderFn({ orderId: order.orderId })}
+          variant="ghost"
+          size="xs"
+        >
           <X className="mr-2 h-3 w-3" />
         </Button>
       </TableCell>

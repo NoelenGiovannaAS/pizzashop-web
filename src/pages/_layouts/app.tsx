@@ -1,7 +1,34 @@
 import { Header } from '@/components/header'
-import { Outlet } from 'react-router-dom'
+import { api } from '@/lib/axios'
+import { isAxiosError } from 'axios'
+import { useEffect } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
 
 export function AppLayout() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const interceptorId = api.interceptors.response.use(
+      (response) => response, // sucesso
+      (error) => {
+        // quando há erro
+        if (isAxiosError(error)) {
+          const status = error.response?.status
+          const code = error.response?.data.code
+
+          if (status === 401 && code === 'UNATHORIZED') {
+            navigate('/sign-in', { replace: true })
+          }
+        }
+      },
+    )
+
+    return () => {
+      // limpeza dos event listeners
+      api.interceptors.response.eject(interceptorId)
+    }
+  }, [navigate])
+
   return (
     <div className="flex min-h-screen flex-col antialiased">
       <Header />

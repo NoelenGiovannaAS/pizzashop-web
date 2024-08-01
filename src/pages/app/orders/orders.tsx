@@ -10,15 +10,33 @@ import { Helmet } from 'react-helmet-async'
 import { OrderTableFilters } from './order-table-filters'
 import { OrderTableRow } from './order-table-row'
 import { useQuery } from 'react-query'
-import { getOrders } from '@/api/get-orders'
-
-
+import { getOrders } from '@/api/orders/get-orders'
+import { useSearchParams } from 'react-router-dom'
+import { z } from 'zod'
 
 export function Orders() {
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const orderId = searchParams.get('orderId')
+  const customerName = searchParams.get('customerName')
+  const status = searchParams.get('status')
+
+
+  const pageIndex = z.coerce.number() //pega algo e converte em número
+  .transform(page => Math.max(page - 1, 0)).parse(searchParams.get('page') ?? '0')
+
   const {data: result} = useQuery({
-    queryKey: ['orders'],
-    queryFn: getOrders,
+    queryKey: ['orders', pageIndex, orderId, customerName, status],
+    queryFn: () => getOrders({pageIndex, customerName, orderId, status: status === 'all' ? null : status}),
   })
+
+  const handlePaginate = (pageIndex: number) => {
+    setSearchParams(prev => {
+      prev.set('page',( pageIndex + 1).toString())
+
+      return prev
+    })
+  }
 
   return (
     <>
@@ -46,14 +64,20 @@ export function Orders() {
               </TableHeader>
 
               <TableBody>
-                {result?.data.orders && result.data.orders.map(order => {
+                {result?.orders && result.orders.map(order => {
                   return <OrderTableRow key={order.orderId} order={order}/>
                 })}
               </TableBody>
             </Table>
           </div>
 
-          <Pagination pageIndex={0} perPage={0} totalCount={0} />
+          {result && (
+            <Pagination 
+              onPageChange={handlePaginate}
+              pageIndex={result.meta.pageIndex} 
+              perPage={result.meta.totalCount} 
+              totalCount={result.meta.perPage} 
+            />)}
         </div>
       </div>
     </>

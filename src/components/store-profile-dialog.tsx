@@ -1,8 +1,8 @@
 import {
   GetManagedRestaurantResponse,
   getManagedRestaurant,
-} from '@/api/get-managed-restaurant'
-import { putProfile } from '@/api/put-profile'
+} from '@/api/metrics/get-managed-restaurant'
+import { putProfile } from '@/api/profile/put-profile'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { DialogDescription } from '@radix-ui/react-dialog'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'

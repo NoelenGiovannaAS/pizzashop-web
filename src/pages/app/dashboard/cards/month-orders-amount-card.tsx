@@ -1,7 +1,14 @@
+import { getMonthOrdersAmount } from '@/api/metrics/get-month-orders-amount'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Utensils } from 'lucide-react'
+import { useQuery } from 'react-query'
 
 export function MonthOrdersAmountCard() {
+  const { data: monthOrdersAmount } = useQuery({
+    queryFn: getMonthOrdersAmount,
+    queryKey: ['metrics', 'month-orders-amount'],
+  })
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
@@ -9,12 +16,32 @@ export function MonthOrdersAmountCard() {
         <Utensils className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent className="space-y-1">
-        <span className="text-2xl font-bold tracking-tight">278</span>
-        <p className="foreground text-xs text-muted">
-          <span className="text-emerald-500 dark:text-emerald-400">
-            +4% em relação ao mês passado
-          </span>
-        </p>
+        {monthOrdersAmount && (
+          <>
+            <span className="text-2xl font-bold tracking-tight">
+              {monthOrdersAmount.amount}
+            </span>
+            {monthOrdersAmount.diffFromLastMonth >= 0 ? (
+              <>
+                <p className="foreground text-xs text-muted">
+                  <span className="text-emerald-500 dark:text-emerald-400">
+                    +{monthOrdersAmount.diffFromLastMonth}% em relação ao mês
+                    passado
+                  </span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="foreground text-xs text-muted">
+                  <span className="text-rose-500 dark:text-rose-400">
+                    {monthOrdersAmount.diffFromLastMonth}% em relação ao mês
+                    passado
+                  </span>
+                </p>
+              </>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   )
