@@ -7,7 +7,7 @@ import { OrderStatus } from '@/components/order-status'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
-import { useMutation, useQueryClient } from 'react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { cancelOrder } from '@/api/orders/cancel-order'
 import { GetOrdersResponse } from '@/api/orders/get-orders'
 export interface OrderTableRowProps {

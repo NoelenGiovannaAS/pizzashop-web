@@ -9,10 +9,11 @@ import {
 import { Helmet } from 'react-helmet-async'
 import { OrderTableFilters } from './order-table-filters'
 import { OrderTableRow } from './order-table-row'
-import { useQuery } from 'react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getOrders } from '@/api/orders/get-orders'
 import { useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
+import { OrderTableSkeleton } from './order-table-skeleton'
 
 export function Orders() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -21,18 +22,25 @@ export function Orders() {
   const customerName = searchParams.get('customerName')
   const status = searchParams.get('status')
 
+  const pageIndex = z.coerce
+    .number() // pega algo e converte em número
+    .transform((page) => Math.max(page - 1, 0))
+    .parse(searchParams.get('page') ?? '0')
 
-  const pageIndex = z.coerce.number() //pega algo e converte em número
-  .transform(page => Math.max(page - 1, 0)).parse(searchParams.get('page') ?? '0')
-
-  const {data: result} = useQuery({
+  const { data: result, isLoading: isLoadingOrders } = useQuery({
     queryKey: ['orders', pageIndex, orderId, customerName, status],
-    queryFn: () => getOrders({pageIndex, customerName, orderId, status: status === 'all' ? null : status}),
+    queryFn: () =>
+      getOrders({
+        pageIndex,
+        customerName,
+        orderId,
+        status: status === 'all' ? null : status,
+      }),
   })
 
   const handlePaginate = (pageIndex: number) => {
-    setSearchParams(prev => {
-      prev.set('page',( pageIndex + 1).toString())
+    setSearchParams((prev) => {
+      prev.set('page', (pageIndex + 1).toString())
 
       return prev
     })
@@ -64,20 +72,23 @@ export function Orders() {
               </TableHeader>
 
               <TableBody>
-                {result?.orders && result.orders.map(order => {
-                  return <OrderTableRow key={order.orderId} order={order}/>
-                })}
+                {isLoadingOrders && <OrderTableSkeleton />}
+                {result?.orders &&
+                  result.orders.map((order) => {
+                    return <OrderTableRow key={order.orderId} order={order} />
+                  })}
               </TableBody>
             </Table>
           </div>
 
           {result && (
-            <Pagination 
+            <Pagination
               onPageChange={handlePaginate}
-              pageIndex={result.meta.pageIndex} 
-              perPage={result.meta.totalCount} 
-              totalCount={result.meta.perPage} 
-            />)}
+              pageIndex={result.meta.pageIndex}
+              perPage={result.meta.totalCount}
+              totalCount={result.meta.perPage}
+            />
+          )}
         </div>
       </div>
     </>
